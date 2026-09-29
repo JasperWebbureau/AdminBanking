@@ -1,0 +1,5 @@
+<?php
+declare(strict_types=1);
+namespace Flexgrid\Modules\AdminBanking\Application\UseCase;
+use Flexgrid\Modules\AdminBanking\Application\Query\BankTransactionListQuery;use Flexgrid\Modules\AdminBanking\Contract\BankAccountRepositoryInterface;use Flexgrid\Modules\AdminBanking\Contract\BankTransactionListRepositoryInterface;use Flexgrid\Modules\AdminCore\Context\TenantContext;
+final class ListBankTransactions{private$tenant,$transactions,$accounts;public function __construct(TenantContext$tenant,BankTransactionListRepositoryInterface$transactions,BankAccountRepositoryInterface$accounts){$this->tenant=$tenant;$this->transactions=$transactions;$this->accounts=$accounts;}public function execute(BankTransactionListQuery$query):array{$tenant=$this->tenant->getTenantId();return['query'=>$query,'result'=>$this->transactions->search($tenant,$query),'summaries'=>$this->transactions->getSummaries($tenant,$query),'years'=>$this->transactions->getYears($tenant),'accounts'=>$this->accounts->findAll($tenant,true)];}}

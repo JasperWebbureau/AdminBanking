@@ -1,0 +1,2 @@
+<?php
+declare(strict_types=1);require __DIR__.'/BankingDomainTest.php';require __DIR__.'/AbnTabStatementParserTest.php';require __DIR__.'/ImportBankStatementTest.php';require __DIR__.'/BankMatchProposalTest.php';require __DIR__.'/BankMatchDecisionTest.php';require __DIR__.'/ManualBankMatchTest.php';require __DIR__.'/BankingOverviewTest.php';require __DIR__.'/BankingUiContractTest.php';require __DIR__.'/PersistenceMetadataTest.php';
