@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Flexgrid\Modules\AdminBanking\Controller;
 
 use Flexgrid\Event\AjaxEvent;
+use Flexgrid\Flexgrid;
 use Flexgrid\Modules\AdminBanking\Application\Command\CreateBankAccountCommand;
 use Flexgrid\Modules\AdminBanking\Application\Command\ImportBankStatementCommand;
 use Flexgrid\Modules\AdminBanking\Application\Query\BankTransactionListQuery;
@@ -29,7 +30,7 @@ final class AdminBankingController
     }
     public function match($args=[])
     {
-        try{$data=AdminBankingFactory::createGetMatches()->execute($this->routeArgument($args));}catch(\Throwable$throwable){return$this->transactions();}appendIconAndTitleToHeader('fas fa-link','Banktransactie afletteren','Administratie');$this->assets();return new TemplateResponse('Flexgrid/Modules/AdminBanking/src/Templates/Match/Index.php',['content'=>(string)$this->renderMatchContent($data),'overviewUrl'=>$this->url('transactions')]);
+        try{$data=AdminBankingFactory::createGetMatches()->execute($this->routeArgument($args));}catch(\Throwable$throwable){return$this->transactions();}appendIconAndTitleToHeader('fas fa-link','Banktransactie afletteren','Administratie');$this->assets();Flexgrid::getApp()->appendMainHeader(new TemplateResponse('Flexgrid/Modules/AdminBanking/src/Templates/Match/HeaderActions.php',['overviewUrl'=>$this->url('transactions')]));return new TemplateResponse('Flexgrid/Modules/AdminBanking/src/Templates/Match/Index.php',['content'=>(string)$this->renderMatchContent($data),'overviewUrl'=>$this->url('transactions')]);
     }
     public function generateMatches()
     {
