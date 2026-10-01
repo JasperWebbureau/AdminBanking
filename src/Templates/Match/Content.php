@@ -1,6 +1,9 @@
 <?php
 $h = function ($value): string { return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); };
 $statusTone = $status === 'matched' ? 'success' : ($status === 'ignored' ? 'neutral' : 'warning');
+$expenseTitle = trim($description) !== '' ? trim($description) : $counterparty;
+$expenseTitle = function_exists('mb_substr') ? mb_substr($expenseTitle, 0, 255, 'UTF-8') : substr($expenseTitle, 0, 255);
+$expenseReference = function_exists('mb_substr') ? mb_substr($reference, 0, 128, 'UTF-8') : substr($reference, 0, 128);
 ?>
 <grid class="admin-banking-match-layout fluid">
     <section class="panel admin-panel" style="--cw:5;--cw-sm:12">
@@ -18,8 +21,11 @@ $statusTone = $status === 'matched' ? 'success' : ($status === 'ignored' ? 'neut
             </dl>
             <?php if ($status === 'matched') { ?>
                 <p class="admin-banking-decision is-success"><i class="fas fa-circle-check"></i> Afgeletterd aan <?=$h($transaction->getMatchedTargetType())?> <small><?=$h($transaction->getMatchedTargetPublicId())?></small></p>
+                <?php if ($transaction->getMatchedTargetType() === 'expense') { ?><a class="button button-secondary" href="<?=$h(rtrim($expenseEditBaseUrl, '/') . '/' . rawurlencode($transaction->getMatchedTargetPublicId()))?>">Open uitgave</a><?php } ?>
             <?php } elseif ($status === 'ignored') { ?>
                 <p class="admin-banking-decision"><i class="fas fa-ban"></i> Bewust buiten de aflettering gehouden.</p>
+            <?php } elseif ($expenseCreationAvailable && $transaction->getAmount()->getMinorUnits() < 0) { ?>
+                <p><button class="button button-publish" type="button" data-admin-banking-show-expense aria-controls="admin-banking-expense-panel" aria-expanded="false"><i class="fas fa-plus"></i> Maak uitgave</button></p>
             <?php } ?>
         </div>
     </section>
@@ -61,6 +67,31 @@ $statusTone = $status === 'matched' ? 'success' : ($status === 'ignored' ? 'neut
             <?php } ?>
         </div>
     </section>
+
+    <?php if ($status === 'unmatched' && $expenseCreationAvailable && $transaction->getAmount()->getMinorUnits() < 0) { ?>
+        <section id="admin-banking-expense-panel" class="panel admin-panel" style="--cw:12;--cw-sm:12" data-admin-banking-expense-panel hidden>
+            <div class="panel__header admin-panel__header"><h3><i class="fas fa-receipt"></i> Uitgave maken van banktransactie</h3></div>
+            <div class="panel__body admin-panel__body">
+                <?php if (empty($expenseCategories)) { ?>
+                    <div class="notification notification--warning">Maak eerst bij Uitgaven een uitgavencategorie aan.</div>
+                <?php } else { ?>
+                    <form class="admin-form admin-banking-expense-form" ajax="true" action="<?=$h($createExpenseAction)?>" method="post" enctype="multipart/form-data">
+                        <input type="hidden" name="public_id" value="<?=$h($publicId)?>">
+                        <label class="admin-field" style="--cw:6;--cw-sm:12"><span>Titel *</span><input name="title" value="<?=$h($expenseTitle)?>" maxlength="255" required></label>
+                        <label class="admin-field" style="--cw:6;--cw-sm:12"><span>Categorie *</span><select name="category_public_id" required><option value="">Kies een categorie</option><?php foreach ($expenseCategories as $category) { ?><option value="<?=$h($category['public_id'])?>"><?=$h($category['name'] . ' · ' . $category['type_label'])?></option><?php } ?></select><small class="admin-field__help">De categorie bepaalt of dit bedrag als bedrijfskost meetelt.</small></label>
+                        <label class="admin-field" style="--cw:6;--cw-sm:12"><span>Brutobedrag</span><input value="<?=$h($transaction->getAmount()->negate()->format() . ' ' . $transaction->getAmount()->getCurrency()->getCode())?>" readonly></label>
+                        <label class="admin-field" style="--cw:6;--cw-sm:12"><span>Btw-percentage *</span><input name="vat_rate" type="number" value="21" min="0" max="100" step="0.01" inputmode="decimal" required><small class="admin-field__help">Standaard 21%; netto en btw worden uit het brutobedrag berekend.</small></label>
+                        <label class="admin-field" style="--cw:6;--cw-sm:12"><span>Bestaande leverancier (optioneel)</span><select name="supplier_expense_public_id"><option value="">Geen bestaande leverancier</option><?php foreach ($existingSuppliers as $supplierOption) { ?><option value="<?=$h($supplierOption['expense_public_id'])?>"><?=$h($supplierOption['name'])?></option><?php } ?></select><small class="admin-field__help">Gebruikt de gegevens van een eerdere uitgave.</small></label>
+                        <label class="admin-field" style="--cw:6;--cw-sm:12"><span>Nieuwe leverancier (optioneel)</span><input name="supplier_name" maxlength="255" placeholder="Naam van leverancier"><small class="admin-field__help">Een ingevulde nieuwe naam gaat voor op de selectie.</small></label>
+                        <label class="admin-field" style="--cw:6;--cw-sm:12"><span>Referentie</span><input name="reference" value="<?=$h($expenseReference)?>" maxlength="128"></label>
+                        <label class="admin-field" style="--cw:6;--cw-sm:12"><span>Factuur of bon (optioneel)</span><input type="file" name="attachment" accept="application/pdf,image/jpeg,image/png,image/webp"><small class="admin-field__help">PDF of afbeelding, maximaal 25 MB.</small></label>
+                        <label class="admin-field" style="--cw:12"><span>Omschrijving</span><textarea name="description" rows="3" maxlength="10000"><?=$h($description)?></textarea></label>
+                        <div class="admin-form-actions" style="--cw:12"><button class="button button-publish" type="submit"><i class="fas fa-save"></i> Uitgave opslaan</button></div>
+                    </form>
+                <?php } ?>
+            </div>
+        </section>
+    <?php } ?>
 
     <?php if ($status === 'unmatched') { ?>
         <section class="panel admin-panel admin-banking-manual-match" style="--cw:12">

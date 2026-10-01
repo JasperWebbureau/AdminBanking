@@ -19,7 +19,7 @@ use Flexgrid\Utils\Request\Request;
 final class AdminBankingController
 {
     public function index(){return$this->transactions();}
-    public function transactions(){appendIconAndTitleToHeader('fas fa-building-columns','Bankieren','Administratie');$this->assets();return new TemplateResponse('Flexgrid/Modules/AdminBanking/src/Templates/Transactions/Index.php',['content'=>(string)$this->renderContent($this->query())]);}
+    public function transactions(){appendIconAndTitleToHeader('fas fa-building-columns','Bankieren','Administratie');$this->assets();\Flexgrid\Modules\AdminCore\Service\AdminHeader::AdminAddHeader();return new TemplateResponse('Flexgrid/Modules/AdminBanking/src/Templates/Transactions/Index.php',['content'=>(string)$this->renderContent($this->query())]);}
     public function createAccount()
     {
         try{$request=new Request();$account=AdminBankingFactory::createCreateAccount()->execute(new CreateBankAccountCommand($this->string($request,'name'),$this->string($request,'account_reference'),$this->string($request,'currency')?:'EUR',$this->string($request,'iban')));return$this->contentResponse(new BankTransactionListQuery(),'Bankrekening '.$account->getName().' is beschikbaar.');}catch(\Throwable$throwable){return$this->error($throwable,'De bankrekening kon niet worden opgeslagen.');}
@@ -30,7 +30,7 @@ final class AdminBankingController
     }
     public function match($args=[])
     {
-        try{$data=AdminBankingFactory::createGetMatches()->execute($this->routeArgument($args));}catch(\Throwable$throwable){return$this->transactions();}appendIconAndTitleToHeader('fas fa-link','Banktransactie afletteren','Administratie');$this->assets();Flexgrid::getApp()->appendMainHeader(new TemplateResponse('Flexgrid/Modules/AdminBanking/src/Templates/Match/HeaderActions.php',['overviewUrl'=>$this->url('transactions')]));return new TemplateResponse('Flexgrid/Modules/AdminBanking/src/Templates/Match/Index.php',['content'=>(string)$this->renderMatchContent($data),'overviewUrl'=>$this->url('transactions')]);
+        try{$data=AdminBankingFactory::createGetMatches()->execute($this->routeArgument($args));}catch(\Throwable$throwable){return$this->transactions();}appendIconAndTitleToHeader('fas fa-link','Banktransactie afletteren','Administratie');$this->assets();\Flexgrid\Modules\AdminCore\Service\AdminHeader::AdminAddHeader([new TemplateResponse('Flexgrid/Modules/AdminBanking/src/Templates/Match/HeaderActions.php',['overviewUrl'=>$this->url('transactions')])]);return new TemplateResponse('Flexgrid/Modules/AdminBanking/src/Templates/Match/Index.php',['content'=>(string)$this->renderMatchContent($data),'overviewUrl'=>$this->url('transactions')]);
     }
     public function generateMatches()
     {
@@ -48,15 +48,38 @@ final class AdminBankingController
     {
         try{$request=new Request();$transaction=AdminBankingFactory::createAcceptManualMatch()->execute($this->string($request,'public_id'),$this->string($request,'target_type'),$this->string($request,'target_public_id'));return$this->matchResponse($transaction->getPublicId(),'Banktransactie is handmatig en definitief afgeletterd.');}catch(\Throwable$throwable){return$this->error($throwable,'De handmatige aflettering kon niet worden verwerkt.');}
     }
+    public function createExpense()
+    {
+        try{
+            $request=new Request();
+            $publicId=$this->string($request,'public_id');
+            $creator=AdminBankingFactory::expenseCreator();
+            if($creator===null){throw new \DomainException('Uitgaven zijn in deze installatie niet beschikbaar.');}
+            $fields=[];foreach(['category_public_id','title','vat_rate','supplier_name','supplier_expense_public_id','description','reference']as$key){$fields[$key]=$this->string($request,$key);}
+            $file=$_FILES['attachment']??null;
+            $result=$creator->create(AdminBankingFactory::tenantId(),$publicId,$fields,is_array($file)?$file:null);
+            $message='Uitgave aangemaakt en banktransactie afgeletterd.';
+            if($result['attachment_uploaded']){$message='Uitgave met bewijsstuk aangemaakt en banktransactie afgeletterd.';}
+            if($result['attachment_error']!==''){$message='Uitgave aangemaakt en banktransactie afgeletterd. Bewijsstuk niet toegevoegd: '.$result['attachment_error'];}
+            return$this->matchResponse($publicId,$message,$result['attachment_error']!==''?'warning':'success');
+        }catch(\Throwable$throwable){return$this->error($throwable,'De uitgave kon niet worden aangemaakt.');}
+    }
     public function ignoreTransaction()
     {
         try{$request=new Request();$transaction=AdminBankingFactory::createIgnoreTransaction()->execute($this->string($request,'public_id'));return$this->matchResponse($transaction->getPublicId(),'Banktransactie is genegeerd.');}catch(\Throwable$throwable){return$this->error($throwable,'De banktransactie kon niet worden genegeerd.');}
     }
     public function refresh(){return$this->contentResponse($this->query());}
     private function renderContent(BankTransactionListQuery$query):TemplateResponse{$data=AdminBankingFactory::createListTransactions()->execute($query);return new TemplateResponse('Flexgrid/Modules/AdminBanking/src/Templates/Transactions/Content.php',AdminBankingFactory::createOverviewPresenter()->present($data,$this->action('refresh'),$this->action('createAccount'),$this->action('importStatement'),$this->url('match')));}
-    private function renderMatchContent(array$data):TemplateResponse{return new TemplateResponse('Flexgrid/Modules/AdminBanking/src/Templates/Match/Content.php',AdminBankingFactory::createMatchPresenter()->present($data,$this->action('generateMatches'),$this->action('acceptMatch'),$this->action('ignoreTransaction'),$this->action('searchTargets'),$this->action('acceptManualMatch')));}
+    private function renderMatchContent(array$data):TemplateResponse
+    {
+        $creator=AdminBankingFactory::expenseCreator();
+        $transaction=$data['transaction'];
+        $canCreate=$creator!==null&&$transaction->getStatus()->getValue()===BankTransactionStatus::UNMATCHED&&$transaction->getAmount()->getMinorUnits()<0;
+        $tenant=$canCreate?AdminBankingFactory::tenantId():null;
+        return new TemplateResponse('Flexgrid/Modules/AdminBanking/src/Templates/Match/Content.php',AdminBankingFactory::createMatchPresenter()->present($data,$this->action('generateMatches'),$this->action('acceptMatch'),$this->action('ignoreTransaction'),$this->action('searchTargets'),$this->action('acceptManualMatch'))+['createExpenseAction'=>$this->action('createExpense'),'expenseCreationAvailable'=>$canCreate,'expenseEditBaseUrl'=>rtrim(__DOMAIN__,'/').'/Flexgrid/AdminExpense/edit','expenseCategories'=>$canCreate?$creator->categories($tenant):[],'existingSuppliers'=>$canCreate?$creator->suppliers($tenant):[]]);
+    }
     private function renderManualResults(array$data):TemplateResponse{return new TemplateResponse('Flexgrid/Modules/AdminBanking/src/Templates/Match/ManualResults.php',AdminBankingFactory::createMatchPresenter()->presentTargets($data,$this->action('acceptManualMatch')));}
-    private function matchResponse(string$publicId,string$message):AjaxResponse{$data=AdminBankingFactory::createGetMatches()->execute($publicId);$response=new AjaxResponse();$response->success=true;$response->notifications=['<div class="notification notification--success" fade="4000">'.htmlspecialchars($message,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').'</div>'];$response->setContainer('[data-admin-banking-match-content]',(string)$this->renderMatchContent($data));return$response;}
+    private function matchResponse(string$publicId,string$message,string$tone='success'):AjaxResponse{$data=AdminBankingFactory::createGetMatches()->execute($publicId);$response=new AjaxResponse();$response->success=true;$response->notifications=['<div class="notification notification--'.($tone==='warning'?'warning':'success').'" fade="6000">'.htmlspecialchars($message,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').'</div>'];$response->setContainer('[data-admin-banking-match-content]',(string)$this->renderMatchContent($data));return$response;}
     private function contentResponse(BankTransactionListQuery$query,string$message=''):AjaxResponse{$response=new AjaxResponse();$response->success=true;if($message!==''){$response->notifications=['<div class="notification notification--success" fade="4000">'.htmlspecialchars($message,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').'</div>'];}$response->setContainer('[data-admin-banking-content]',(string)$this->renderContent($query));$response->replaceUrl=$this->overviewUrl($query);return$response;}
     private function query():BankTransactionListQuery{$request=new Request();$year=$this->string($request,'year');$sort=$this->string($request,'sort');$direction=strtolower($this->string($request,'direction'));$status=strtolower($this->string($request,'status'));$flow=strtolower($this->string($request,'flow'));$perPage=$request->getInt('per_page');return new BankTransactionListQuery(substr($this->string($request,'q'),0,120),$this->string($request,'account'),in_array($status,BankTransactionStatus::values(),true)?$status:'',in_array($flow,['all','incoming','outgoing'],true)?$flow:'all',preg_match('/^[0-9]{4}$/D',$year)===1?(int)$year:null,in_array($sort,BankTransactionListQuery::sorts(),true)?$sort:'booked_on',in_array($direction,['asc','desc'],true)?$direction:'desc',max(1,$request->getInt('page')),in_array($perPage,BankTransactionListQuery::pageSizes(),true)?$perPage:10);}
     private function statement(Request$request):array

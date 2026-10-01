@@ -24,6 +24,7 @@ use Flexgrid\Modules\AdminCore\Context\TenantContext;
 use Flexgrid\Modules\AdminCore\Infrastructure\PdoTransactionManager;
 use Flexgrid\Modules\AdminCore\Infrastructure\UuidV4Generator;
 use Flexgrid\Modules\AdminCore\ValueObject\TenantId;
+use Flexgrid\Modules\AdminBanking\Contract\BankExpenseCreatorInterface;
 use Flexgrid\Utils\_Time;
 
 final class AdminBankingFactory
@@ -38,6 +39,8 @@ final class AdminBankingFactory
     public static function createAcceptMatch():AcceptBankMatch{$connection=self::connection();$processors=(new BankMatchProcessorLoader(dirname(__DIR__,3)))->getProcessors();return new AcceptBankMatch(self::tenant(),new PdoTransactionManager($connection),new PdoBankTransactionRepository($connection),new PdoBankMatchProposalRepository($connection),$processors,new _Time());}
     public static function createSearchTargets():SearchBankMatchTargets{$connection=self::connection();$providers=(new BankMatchTargetProviderLoader(dirname(__DIR__,3)))->getProviders();return new SearchBankMatchTargets(self::tenant(),new PdoBankTransactionRepository($connection),$providers);}
     public static function createAcceptManualMatch():AcceptManualBankMatch{$connection=self::connection();$providers=(new BankMatchTargetProviderLoader(dirname(__DIR__,3)))->getProviders();$processors=(new BankMatchProcessorLoader(dirname(__DIR__,3)))->getProcessors();return new AcceptManualBankMatch(self::tenant(),new PdoTransactionManager($connection),new PdoBankTransactionRepository($connection),$providers,$processors,new _Time());}
+    public static function expenseCreator():?BankExpenseCreatorInterface{return(new BankExpenseCreatorLoader(dirname(__DIR__,3)))->getCreator();}
+    public static function tenantId():TenantId{return self::tenant()->getTenantId();}
     public static function createIgnoreTransaction():IgnoreBankTransaction{$connection=self::connection();return new IgnoreBankTransaction(self::tenant(),new PdoTransactionManager($connection),new PdoBankTransactionRepository($connection),new _Time());}
     public static function createMatchPresenter():BankMatchPresenter{return new BankMatchPresenter();}
     private static function connection():\PDO{return Connection::getConnections();}

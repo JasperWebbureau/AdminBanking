@@ -19,6 +19,7 @@ Zelfstandige tenantgebonden module voor bankrekeningen, idempotente afschriftimp
 - Payment stelt bijschrijvingen voor aan openstaande facturen; Expense stelt afschrijvingen voor aan bestaande uitgaven.
 - Betrouwbaarheid en reden blijven zichtbaar. De gebruiker kan een voorstel expliciet bevestigen of een bankregel bewust negeren.
 - Een bevestigde factuurmatch registreert idempotent een Payment en allocation; een uitgavematch valideert het actuele bedrag en bewaart de publieke koppeling in Banking.
+- Op het detail van een open afschrijving maakt **Maak uitgave** direct een uitgave aan en lettert de bankregel in dezelfde databasetransactie af. Het vaste brutobedrag wordt standaard met 21% btw teruggerekend; het percentage en de categorie zijn in het formulier te kiezen. Een leverancier is optioneel en kan nieuw worden ingevuld of uit een eerdere uitgave worden overgenomen. Een factuur of bon kan veilig worden geüpload.
 - Zonder betrouwbaar voorstel kan de gebruiker via AJAX veilig zoeken op factuurnummer, klant, leverancier of referentie. Resultaten tonen datum, totaal en actueel openstaand bedrag en worden vóór bevestiging opnieuw tenantgebonden gevalideerd.
 - Deelbetalingen op facturen tonen een waarschuwing maar zijn toegestaan; overbetalingen en afwijkende uitgavebedragen blijven niet koppelbaar.
 
