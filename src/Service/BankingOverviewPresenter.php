@@ -10,7 +10,7 @@ use Flexgrid\Modules\AdminCore\ValueObject\Money;
 
 final class BankingOverviewPresenter
 {
-    public function present(array $data, string $refreshAction, string $createAccountAction, string $importAction, string $matchBaseUrl = ''): array
+    public function present(array $data, string $refreshAction, string $createAccountAction, string $importAction, string $matchBaseUrl = '', string $quickExpenseAction = '', string $quickExpenseCategory = ''): array
     {
         $query = $data['query'];
         $result = $data['result'];
@@ -21,6 +21,24 @@ final class BankingOverviewPresenter
             $rows[] = ['id' => $item->getPublicId(), 'url' => $matchBaseUrl !== '' ? rtrim($matchBaseUrl, '/') . '/' . rawurlencode($item->getPublicId()) : '', 'cells' => ['booked_on' => $this->date($item->getBookedOn()), 'counterparty' => ['value' => $counterparty, 'secondary' => $item->getCounterpartyIban(), 'title' => true], 'description' => ['value' => $item->getDescription() !== '' ? $item->getDescription() : '—', 'secondary' => $item->getReference()], 'account' => $item->getAccountName(), 'amount' => ['value' => $this->money($item->getAmountMinor(), $item->getCurrency()), 'classes' => [$item->getAmountMinor() > 0 ? 'admin-banking-amount--incoming' : 'admin-banking-amount--outgoing']], 'status' => ['value' => $status['label'], 'badge' => $status['tone']]]];
         }
         $columns = [];
+        if ($quickExpenseAction !== '') {
+            foreach ($result->getItems() as $index => $item) {
+                if ($item->getStatus() !== 'unmatched' || $item->getAmountMinor() >= 0) { continue; }
+                $attributes = ['type' => 'button', 'class' => 'button button-icon button-secondary',
+                    'ajax' => 'true', 'action' => $quickExpenseAction, 'use-waiting-icon' => 'true',
+                    'title' => 'Maak uitgave met 21% btw · ' . $quickExpenseCategory,
+                    'aria-label' => 'Maak uitgave met 21% btw · ' . $quickExpenseCategory,
+                    'data-public_id' => $item->getPublicId(),
+                    'data-q' => $query->getSearch(), 'data-account' => $query->getAccountPublicId(),
+                    'data-status' => $query->getStatus(), 'data-flow' => $query->getFlow(),
+                    'data-year' => $query->getYear() ?? '', 'data-sort' => $query->getSort(),
+                    'data-direction' => $query->getDirection(), 'data-page' => $result->getPage(),
+                    'data-per_page' => $query->getPerPage()];
+                $html = '<button';
+                foreach ($attributes as $name => $value) { $html .= ' ' . $name . '="' . htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"'; }
+                $rows[$index]['actions'] = new \Flexgrid\Html\Table\TrustedHtml($html . '><i class="fas fa-receipt" aria-hidden="true"></i></button>');
+            }
+        }
         foreach (['booked_on' => ['Datum', 'left', true], 'counterparty' => ['Tegenpartij', 'left', true], 'description' => ['Omschrijving', 'left', true], 'account' => ['Rekening', 'left', true], 'amount' => ['Bedrag', 'right', true], 'status' => ['Status', 'left', true]] as $key => $settings) {
             $columns[] = ['key' => $key, 'label' => $settings[0], 'align' => $settings[1], 'sortable' => $settings[2], 'sort_direction' => $query->getSort() === $key ? $query->getDirection() : ''];
         }

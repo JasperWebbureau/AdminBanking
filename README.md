@@ -1,5 +1,13 @@
 # AdminBanking
 
+## Snel uitgave maken met 21% btw
+
+Het transactieoverzicht biedt bij open afschrijvingen een AJAX-icoonknop met `button button-icon button-secondary`. De actie `quickExpense` gebruikt de bestaande Expense-integratie: het afgeschreven bedrag is inclusief 21% btw, de bankdatum wordt de uitgavedatum en de transactie wordt direct afgeletterd. De bestaande transactielock en unieke bankbron voorkomen dubbele uitgaven. Bijschrijvingen, afgeletterde en genegeerde regels krijgen geen knop.
+
+De snelactie kiest een actieve zakelijke kostencategorie: bij voorkeur code `overig`, `overige`, `algemeen`, `general` of `other`, anders de eerste op naam. De tooltip toont de gekozen categorie. Zonder geschikte categorie of Expense-integratie verschijnt de knop niet. Het ingestelde aftrekpercentage van de gekozen categorie blijft gelden. Leverancier, omschrijving en referentie komen uit de bankregel; een lange referentie blijft volledig in de omschrijving bewaard. Filters, sortering en pagina blijven bij de AJAX-verversing behouden. Voor andere tarieven of een eigen categorie blijft de uitgebreide afletterpagina beschikbaar.
+
+Bestaande controllerannotations en templatepaden blijven gelijk; er zijn geen schemawijzigingen of nieuwe assets.
+
 Versie: `0.5.1`
 
 Zelfstandige tenantgebonden module voor bankrekeningen, idempotente afschriftimports, banktransacties en matchvoorstellen. De kern gebruikt alleen AdminCore en kent Payment, Expense, Invoice en de legacy-administratie niet.

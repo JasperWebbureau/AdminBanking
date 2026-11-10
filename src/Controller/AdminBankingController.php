@@ -68,8 +68,26 @@ final class AdminBankingController
     {
         try{$request=new Request();$transaction=AdminBankingFactory::createIgnoreTransaction()->execute($this->string($request,'public_id'));return$this->matchResponse($transaction->getPublicId(),'Banktransactie is genegeerd.');}catch(\Throwable$throwable){return$this->error($throwable,'De banktransactie kon niet worden genegeerd.');}
     }
+    public function quickExpense()
+    {
+        try {
+            $creator = AdminBankingFactory::expenseCreator();
+            if ($creator === null) { throw new \DomainException('Uitgaven zijn in deze installatie niet beschikbaar.'); }
+            $request = new Request();
+            $data = AdminBankingFactory::createGetMatches()->execute($this->string($request, 'public_id'));
+            (new \Flexgrid\Modules\AdminBanking\Service\QuickBankExpense($creator, AdminBankingFactory::tenantId()))->execute($data['transaction']);
+            return $this->contentResponse($this->query(), 'Uitgave met 21% btw aangemaakt en banktransactie afgeletterd.');
+        } catch (\Throwable $throwable) { return $this->error($throwable, 'De uitgave kon niet worden aangemaakt.'); }
+    }
     public function refresh(){return$this->contentResponse($this->query());}
-    private function renderContent(BankTransactionListQuery$query):TemplateResponse{$data=AdminBankingFactory::createListTransactions()->execute($query);return new TemplateResponse('Flexgrid/Modules/AdminBanking/src/Templates/Transactions/Content.php',AdminBankingFactory::createOverviewPresenter()->present($data,$this->action('refresh'),$this->action('createAccount'),$this->action('importStatement'),$this->url('match')));}
+    private function renderContent(BankTransactionListQuery$query):TemplateResponse
+    {
+        $data = AdminBankingFactory::createListTransactions()->execute($query);
+        $creator = AdminBankingFactory::expenseCreator();
+        $category = $creator === null ? null : (new \Flexgrid\Modules\AdminBanking\Service\QuickBankExpense($creator, AdminBankingFactory::tenantId()))->category();
+        return new TemplateResponse('Flexgrid/Modules/AdminBanking/src/Templates/Transactions/Content.php',
+            AdminBankingFactory::createOverviewPresenter()->present($data, $this->action('refresh'), $this->action('createAccount'), $this->action('importStatement'), $this->url('match'), $category === null ? '' : $this->action('quickExpense'), $category['name'] ?? ''));
+    }
     private function renderMatchContent(array$data):TemplateResponse
     {
         $creator=AdminBankingFactory::expenseCreator();
