@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);namespace Flexgrid\Modules\AdminBanking\Entity;use Repository\RepositoryEntity;
-/** @FG\Entity[name=admin_bank_transaction,repository=Flexgrid\Modules\AdminBanking\Repository\BankTransactionRecordRepository,type=Module,in_menu=false,hide=true,hide=true]
+/** @FG\Entity[name=admin_bank_transaction,label=Banktransactie,repository=Flexgrid\Modules\AdminBanking\Repository\BankTransactionRecordRepository,type=Module,in_menu=false,hide=true,hide=true]
  * @FG\Index::tenant_public[columns={tenantId,publicId},unique=true]
  * @FG\Index::tenant_account_external[columns={tenantId,bankAccountPublicId,externalId},unique=true]
  * @FG\Index::tenant_status_date[columns={tenantId,status,bookedOn}]

@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);namespace Flexgrid\Modules\AdminBanking\Entity;use Repository\RepositoryEntity;
-/** @FG\Entity[name=admin_bank_import,repository=Flexgrid\Modules\AdminBanking\Repository\BankImportRecordRepository,type=Module,in_menu=false,hide=true,hide=true]
+/** @FG\Entity[name=admin_bank_import,label=Import bankafschrift,repository=Flexgrid\Modules\AdminBanking\Repository\BankImportRecordRepository,type=Module,in_menu=false,hide=true,hide=true]
  * @FG\Index::tenant_public[columns={tenantId,publicId},unique=true]
  * @FG\Index::tenant_account_format_checksum[columns={tenantId,bankAccountPublicId,format,checksumSha256},unique=true]
  * @FG\Index::tenant_imported_at[columns={tenantId,importedAt}]

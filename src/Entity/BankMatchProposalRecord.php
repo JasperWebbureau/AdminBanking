@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);namespace Flexgrid\Modules\AdminBanking\Entity;use Repository\RepositoryEntity;
-/** @FG\Entity[name=admin_bank_match_proposal,repository=Flexgrid\Modules\AdminBanking\Repository\BankMatchProposalRecordRepository,type=Module,in_menu=false,hide=true,hide=true]
+/** @FG\Entity[name=admin_bank_match_proposal,label=Voorstel voor bankkoppeling,repository=Flexgrid\Modules\AdminBanking\Repository\BankMatchProposalRecordRepository,type=Module,in_menu=false,hide=true,hide=true]
  * @FG\Index::tenant_public[columns={tenantId,publicId},unique=true]
  * @FG\Index::tenant_transaction_target[columns={tenantId,transactionPublicId,targetType,targetPublicId},unique=true]
  * @FG\Index::tenant_transaction_confidence[columns={tenantId,transactionPublicId,confidenceBasisPoints}]
